@@ -10,7 +10,17 @@ var isSending = false;
 // instantiate a queue to store messages in
 var messageQueue = new Queue();
 
-const _automatorSendMessageToChat = (chatTitle, chatMessage, callback) => {
+const _automatorSendMessageToChat = (chatTitle, chatMessage, imagePath, callback) => {
+	var scriptFile = 'send.scpt';
+    if (!imagePath) {
+        return shell.exec(`osascript ${__dirname}/script/${scriptFile} ${chatTitle} "${chatMessage.replace(/(?:\\\\[rn]|[\\r\\n]+)+/g, '\\r')}"`, {
+            silent: true
+        }, callback);
+    }
+    scriptFile = 'sendRich.scpt';
+    return shell.exec(`osascript ${__dirname}/script/${scriptFile} ${chatTitle} "${chatMessage.replace(/(?:\\\\[rn]|[\\r\\n]+)+/g, '\\r')}" "${imagePath}"`, {
+        silent: true
+    }, callback);
 
 	return shell.exec(`automator -i "${chatTitle}\n${chatMessage.replace(/(?:\\[rn]|[\r\n]+)+/g, '\r')}" ${__dirname}/automations/Messages-sendMessage.workflow`, {
 		silent: true
@@ -18,9 +28,10 @@ const _automatorSendMessageToChat = (chatTitle, chatMessage, callback) => {
 }
 
 // basic message model
-var Message = function(chatTitle, chatMessage, callback) {
+var Message = function(chatTitle, chatMessage, imagePath, callback) {
 	this.chatTitle = chatTitle;
 	this.chatMessage = chatMessage;
+	this.imagePath = imagePath;
 	this.messageCallback = callback;
 
 	if (!callback) {
@@ -49,9 +60,10 @@ function sendMessagesFromQueue() {
 
 	var chatTitle = message.chatTitle;
 	var chatMessage = message.chatMessage;
+	var imagePath = message.imagePath;
 	var messageCallback = message.messageCallback;
 
-	_automatorSendMessageToChat(chatTitle, chatMessage, messageCallback);
+	_automatorSendMessageToChat(chatTitle, chatMessage, imagePath, messageCallback);
 }
 
 /**
@@ -61,9 +73,9 @@ function sendMessagesFromQueue() {
  * @param  {Function} callback    [callback to execute when done sending]
  * @return {[type]}               [void]
  */
-exports.sendMessage = function(chatTitle, chatMessage, callback) {
+exports.sendMessage = function(chatTitle, chatMessage, imagePath, callback) {
 	// add new message to the messagequeue
-	messageQueue.enqueue(new Message(chatTitle, chatMessage, callback));
+	messageQueue.enqueue(new Message(chatTitle, chatMessage, imagePath, callback));
 	// attempt to send messages
 	sendMessagesFromQueue();
 };
